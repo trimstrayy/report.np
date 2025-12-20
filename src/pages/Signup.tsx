@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/providers/AuthProvider';
+import { useLocation } from '@/hooks/useLocation';
+import { LocationPermissionModal } from '@/components/LocationPermissionModal';
 import { toast } from 'sonner';
 
 export default function Signup() {
@@ -13,8 +15,30 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
   const navigate = useNavigate();
-  const { signup } = useAuth();
+  const { signup, setUserLocation } = useAuth();
+  const { requestLocation, loading: locationLoading } = useLocation();
+
+  const handleLocationAndNavigate = async () => {
+    const success = await requestLocation();
+    if (success) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        setUserLocation({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+      });
+      toast.success('Location enabled!');
+    }
+    setShowLocationModal(false);
+    navigate('/home');
+  };
+
+  const handleSkipLocation = () => {
+    setShowLocationModal(false);
+    navigate('/home');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +51,7 @@ export default function Signup() {
     setLoading(false);
     if (success) {
       toast.success('Account created!');
-      navigate('/home');
+      setShowLocationModal(true);
     }
   };
 
@@ -50,6 +74,13 @@ export default function Signup() {
         <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="input-field" required />
         <button type="submit" disabled={loading} className="btn-primary mt-6">{loading ? 'Creating...' : 'Sign Up'}</button>
       </motion.form>
+
+      <LocationPermissionModal
+        isOpen={showLocationModal}
+        onAllow={handleLocationAndNavigate}
+        onSkip={handleSkipLocation}
+        loading={locationLoading}
+      />
     </div>
   );
 }

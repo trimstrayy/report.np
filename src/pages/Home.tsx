@@ -29,7 +29,7 @@ export default function Home() {
             <p className="text-primary-foreground/70 text-sm">Welcome back,</p>
             <h1 className="text-xl font-bold">{user?.name || 'Guest'}</h1>
           </div>
-          <button className="relative p-2 bg-primary-foreground/10 rounded-xl">
+          <button onClick={() => navigate('/notifications')} className="relative p-2 bg-primary-foreground/10 rounded-xl">
             <Bell size={22} />
             <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full" />
           </button>

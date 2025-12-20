@@ -14,6 +14,7 @@ interface IssueTagChipProps {
   type: IssueType;
   selected?: boolean;
   onClick?: () => void;
+  size?: 'sm' | 'md';
 }
 
 const issueConfig: Record<IssueType, { icon: React.ElementType; bgClass: string; textClass: string }> = {
@@ -59,19 +60,23 @@ const issueConfig: Record<IssueType, { icon: React.ElementType; bgClass: string;
   },
 };
 
-export function IssueTagChip({ type, selected, onClick }: IssueTagChipProps) {
+export function IssueTagChip({ type, selected, onClick, size = 'md' }: IssueTagChipProps) {
   const config = issueConfig[type];
   const Icon = config.icon;
+
+  const sizeClasses = size === 'sm' 
+    ? 'px-2 py-1 text-xs gap-1' 
+    : 'px-3 py-1.5 text-sm gap-1.5';
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`issue-tag ${config.bgClass} ${config.textClass} ${
+      className={`inline-flex items-center rounded-full font-medium ${sizeClasses} ${config.bgClass} ${config.textClass} ${
         selected ? 'ring-2 ring-primary ring-offset-1' : ''
       } ${onClick ? 'cursor-pointer hover:opacity-80' : ''}`}
     >
-      <Icon size={14} />
+      <Icon size={size === 'sm' ? 12 : 14} />
       <span>{type}</span>
     </button>
   );

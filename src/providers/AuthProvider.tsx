@@ -4,9 +4,13 @@ import { User } from '@/models/types';
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isGuest: boolean;
+  userLocation: { latitude: number; longitude: number } | null;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, phone: string, password: string) => Promise<boolean>;
   logout: () => void;
+  continueAsGuest: () => void;
+  setUserLocation: (location: { latitude: number; longitude: number } | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,14 +27,29 @@ const dummyUser: User = {
   resolvedCount: 32,
 };
 
+const guestUser: User = {
+  id: 'guest',
+  name: 'Guest User',
+  email: '',
+  phone: '',
+  avatar: '',
+  points: 0,
+  rank: 'Bronze',
+  reportsCount: 0,
+  resolvedCount: 0,
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isGuest, setIsGuest] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     if (email && password) {
       setUser(dummyUser);
+      setIsGuest(false);
       return true;
     }
     return false;
@@ -50,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         reportsCount: 0,
         resolvedCount: 0,
       });
+      setIsGuest(false);
       return true;
     }
     return false;
@@ -57,10 +77,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
+    setIsGuest(false);
+    setUserLocation(null);
+  };
+
+  const continueAsGuest = () => {
+    setUser(guestUser);
+    setIsGuest(true);
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, signup, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated: !!user, 
+      isGuest,
+      userLocation,
+      login, 
+      signup, 
+      logout,
+      continueAsGuest,
+      setUserLocation,
+    }}>
       {children}
     </AuthContext.Provider>
   );

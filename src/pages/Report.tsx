@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, MapPin, Send } from 'lucide-react';
+import { ArrowLeft, MapPin, Send, RefreshCw, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { IssueType, Severity } from '@/models/types';
 import { IssueTagChip } from '@/components/IssueTagChip';
 import { PhotoPreview } from '@/components/PhotoPreview';
 import { useComplaints } from '@/providers/ComplaintsProvider';
 import { useAuth } from '@/providers/AuthProvider';
+import { useLocation } from '@/hooks/useLocation';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { toast } from 'sonner';
 
@@ -21,7 +22,19 @@ export default function Report() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { addComplaint } = useComplaints();
-  const { user } = useAuth();
+  const { user, userLocation } = useAuth();
+  const { latitude, longitude, loading: locationLoading, error: locationError, requestLocation } = useLocation();
+
+  // Use location from hook or fallback to auth context
+  const currentLat = latitude ?? userLocation?.latitude;
+  const currentLng = longitude ?? userLocation?.longitude;
+
+  useEffect(() => {
+    // Auto-request location when page loads if not already available
+    if (!currentLat || !currentLng) {
+      requestLocation();
+    }
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,19 +42,23 @@ export default function Report() {
       toast.error('Please fill all required fields');
       return;
     }
+    if (!currentLat || !currentLng) {
+      toast.error('Location is required. Please enable location access.');
+      return;
+    }
     setLoading(true);
     setTimeout(() => {
       addComplaint({
         type: selectedType,
         description,
-        lat: 27.7172,
-        lng: 85.324,
+        lat: currentLat,
+        lng: currentLng,
         photoUrl: photo || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=400',
         severity,
         user: user?.name || 'Anonymous',
         userAvatar: user?.avatar,
         timestamp: new Date().toISOString(),
-        location: 'Kathmandu',
+        location: `${currentLat.toFixed(4)}°N, ${currentLng.toFixed(4)}°E`,
       });
       setLoading(false);
       toast.success('Report submitted!');
@@ -84,15 +101,43 @@ export default function Report() {
 
         <PhotoPreview photo={photo} onRemove={() => setPhoto(null)} onCapture={handlePhotoSelect} onGallery={handlePhotoSelect} />
 
-        <div className="card-elevated p-4 flex items-center gap-3">
-          <MapPin className="text-primary" size={20} />
-          <div>
-            <p className="text-sm font-medium">Location Captured</p>
-            <p className="text-xs text-muted-foreground">27.7172, 85.3240</p>
+        <div className={`card-elevated p-4 flex items-center justify-between ${locationError ? 'border border-destructive/50' : ''}`}>
+          <div className="flex items-center gap-3">
+            {locationError ? (
+              <AlertCircle className="text-destructive" size={20} />
+            ) : (
+              <MapPin className="text-primary" size={20} />
+            )}
+            <div>
+              {locationLoading ? (
+                <>
+                  <p className="text-sm font-medium">Getting location...</p>
+                  <p className="text-xs text-muted-foreground">Please wait</p>
+                </>
+              ) : currentLat && currentLng ? (
+                <>
+                  <p className="text-sm font-medium">Location Captured</p>
+                  <p className="text-xs text-muted-foreground">{currentLat.toFixed(6)}, {currentLng.toFixed(6)}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-destructive">Location Required</p>
+                  <p className="text-xs text-muted-foreground">{locationError || 'Tap refresh to get location'}</p>
+                </>
+              )}
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={() => requestLocation()}
+            disabled={locationLoading}
+            className="p-2 hover:bg-muted rounded-xl transition-colors"
+          >
+            <RefreshCw size={18} className={`text-muted-foreground ${locationLoading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
-        <motion.button whileTap={{ scale: 0.98 }} type="submit" disabled={loading} className="btn-primary flex items-center justify-center gap-2">
+        <motion.button whileTap={{ scale: 0.98 }} type="submit" disabled={loading || (!currentLat && !currentLng)} className="btn-primary flex items-center justify-center gap-2">
           <Send size={18} />
           {loading ? 'Submitting...' : 'Submit Report'}
         </motion.button>

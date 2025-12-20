@@ -8,11 +8,13 @@ import { ComplaintsProvider } from "@/providers/ComplaintsProvider";
 import { HelplineProvider } from "@/providers/HelplineProvider";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
 import Home from "./pages/Home";
 import MapView from "./pages/MapView";
 import Report from "./pages/Report";
 import Profile from "./pages/Profile";
 import Helplines from "./pages/Helplines";
+import Notifications from "./pages/Notifications";
 import ComplaintDetails from "./pages/ComplaintDetails";
 import NotFound from "./pages/NotFound";
 
@@ -30,11 +32,13 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/home" element={<Home />} />
                 <Route path="/map" element={<MapView />} />
                 <Route path="/report" element={<Report />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/helplines" element={<Helplines />} />
+                <Route path="/notifications" element={<Notifications />} />
                 <Route path="/complaint/:id" element={<ComplaintDetails />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

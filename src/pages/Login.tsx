@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { MapPin, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/providers/AuthProvider';
+import { useLocation } from '@/hooks/useLocation';
+import { LocationPermissionModal } from '@/components/LocationPermissionModal';
 import { toast } from 'sonner';
 
 export default function Login() {
@@ -10,8 +12,32 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, continueAsGuest, setUserLocation } = useAuth();
+  const { requestLocation, loading: locationLoading } = useLocation();
+
+  const handleLocationAndNavigate = async () => {
+    const success = await requestLocation();
+    if (success) {
+      // Get the location again to pass to context
+      navigator.geolocation.getCurrentPosition((pos) => {
+        setUserLocation({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+      });
+      toast.success('Location enabled!');
+    }
+    setShowLocationModal(false);
+    navigate('/home');
+  };
+
+  const handleSkipLocation = () => {
+    setShowLocationModal(false);
+    navigate('/home');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,10 +46,16 @@ export default function Login() {
     setLoading(false);
     if (success) {
       toast.success('Welcome back!');
-      navigate('/home');
+      setShowLocationModal(true);
     } else {
       toast.error('Invalid credentials');
     }
+  };
+
+  const handleGuestMode = () => {
+    continueAsGuest();
+    toast.success('Continuing as guest');
+    setShowLocationModal(true);
   };
 
   return (
@@ -45,17 +77,40 @@ export default function Login() {
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
-          <button type="button" className="text-sm text-primary font-medium">Forgot Password?</button>
+          <button type="button" onClick={() => navigate('/forgot-password')} className="text-sm text-primary font-medium">Forgot Password?</button>
           <button type="submit" disabled={loading} className="btn-primary mt-6">
             {loading ? 'Signing in...' : 'Login'}
           </button>
         </motion.form>
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border"></div>
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">or</span>
+          </div>
+        </div>
+
+        <button
+          onClick={handleGuestMode}
+          className="w-full py-4 rounded-2xl border-2 border-border text-foreground font-semibold hover:bg-muted/50 transition-colors"
+        >
+          Continue as Guest
+        </button>
 
         <p className="text-center mt-8 text-muted-foreground">
           Don't have an account?{' '}
           <button onClick={() => navigate('/signup')} className="text-primary font-medium">Create Account</button>
         </p>
       </div>
+
+      <LocationPermissionModal
+        isOpen={showLocationModal}
+        onAllow={handleLocationAndNavigate}
+        onSkip={handleSkipLocation}
+        loading={locationLoading}
+      />
     </div>
   );
 }
