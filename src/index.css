@@ -223,20 +223,65 @@
   }
 }
 
-/* Leaflet map overrides */
+/* Leaflet map overrides - CRITICAL for map rendering */
 .leaflet-container {
   height: 100%;
   width: 100%;
-  border-radius: 1rem;
+  background: #e5e7eb;
+  z-index: 0;
+  position: relative;
+}
+
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box,
+.leaflet-image-layer,
+.leaflet-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.leaflet-tile {
+  filter: inherit;
+  visibility: inherit;
 }
 
 .leaflet-control-zoom {
   border-radius: 0.75rem !important;
   overflow: hidden;
+  border: 2px solid rgba(0, 0, 0, 0.1) !important;
 }
 
 .leaflet-control-zoom a {
   width: 36px !important;
   height: 36px !important;
   line-height: 36px !important;
+}
+
+/* Fix for custom marker styling */
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Ensure leaflet tile images load properly */
+.leaflet-tile-container img {
+  max-width: none !important;
+}
+
+/* Popup styling */
+.leaflet-popup-content-wrapper {
+  border-radius: 0.75rem;
+  padding: 0;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  min-width: 250px;
 }

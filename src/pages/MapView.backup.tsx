@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { StatusBadge } from '@/components/StatusBadge';
 import { IssueTagChip } from '@/components/IssueTagChip';
 import { Button } from '@/components/ui/button';
+import 'leaflet/dist/leaflet.css';
 
 // Fix for default marker icons in React-Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -49,9 +50,6 @@ export default function MapView() {
   const defaultCenter: [number, number] = [27.7172, 85.3240];
   const center = userLocation || defaultCenter;
 
-  console.log('MapView rendering with', complaints.length, 'complaints');
-  console.log('Center:', center);
-
   // Get user's current location
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
@@ -85,30 +83,6 @@ export default function MapView() {
     }
   };
 
-  if (complaints.length === 0) {
-    return (
-      <div className="relative w-full h-screen overflow-hidden bg-slate-100">
-        <header className="absolute top-0 left-0 right-0 z-[1000] px-4 pt-12 pb-4 pointer-events-none">
-          <h1 className="text-xl font-bold text-foreground bg-card/90 backdrop-blur inline-block px-4 py-2 rounded-xl shadow-md pointer-events-auto">
-            Complaints Map (0)
-          </h1>
-        </header>
-
-        <div className="w-full h-full flex items-center justify-center bg-muted">
-          <div className="text-center">
-            <MapPinIcon size={48} className="mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No complaints to display on map</p>
-            <Button onClick={() => navigate('/report')} className="mt-4">
-              Report an Issue
-            </Button>
-          </div>
-        </div>
-
-        <BottomNavigation />
-      </div>
-    );
-  }
-
   return (
     <div className="relative w-full h-screen overflow-hidden bg-slate-100">
       <header className="absolute top-0 left-0 right-0 z-[1000] px-4 pt-12 pb-4 pointer-events-none">
@@ -117,26 +91,25 @@ export default function MapView() {
         </h1>
       </header>
 
-      {/* Map Container - Simple and Direct */}
-      <div className="w-full h-full" style={{ height: '100vh', width: '100vw' }}>
-        <MapContainer
-          center={center}
-          zoom={13}
-          scrollWheelZoom={true}
-          zoomControl={true}
-          style={{ height: '100vh', width: '100vw', background: '#f0f0f0' }}
-          className="z-0"
-        >
-          {/* OpenStreetMap Tiles - Free and reliable */}
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            maxZoom={19}
-            crossOrigin={true}
-          />
+      {/* Map Container */}
+      <div className="absolute inset-0 w-full h-full">
+        {complaints.length > 0 ? (
+          <MapContainer
+            center={center}
+            zoom={13}
+            scrollWheelZoom={true}
+            zoomControl={true}
+            style={{ height: '100vh', width: '100vw', zIndex: 0 }}
+          >
+            {/* OpenStreetMap Tiles - Free and always available */}
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maxZoom={19}
+            />
 
-          {/* Update map center when user location changes */}
-          <MapUpdater center={center} />
+            {/* Update map center when user location changes */}
+            <MapUpdater center={center} />
 
           {/* Render markers or heatmap */}
           {showHeatmap ? (
@@ -203,7 +176,6 @@ export default function MapView() {
               </Marker>
             ))
           )}          
-
           {/* User location marker */}
           {userLocation && (
             <Circle
@@ -218,51 +190,63 @@ export default function MapView() {
             />
           )}
         </MapContainer>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted">
+            <div className="text-center">
+              <MapPinIcon size={48} className="mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No complaints to display on map</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Floating Control Buttons */}
-      <div className="absolute bottom-28 right-4 z-[1000] flex flex-col gap-2">
-        {/* Toggle Heatmap/Markers */}
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setShowHeatmap(!showHeatmap)}
-          className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center ${
-            showHeatmap ? 'bg-primary text-primary-foreground' : 'bg-card'
-          }`}
-          title={showHeatmap ? 'Show Markers' : 'Show Heatmap'}
-        >
-          <Layers size={20} />
-        </motion.button>
+      {complaints.length > 0 && (
+        <div className="absolute bottom-28 right-4 z-[1000] flex flex-col gap-2">
+          {/* Toggle Heatmap/Markers */}
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowHeatmap(!showHeatmap)}
+            className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center ${
+              showHeatmap ? 'bg-primary text-primary-foreground' : 'bg-card'
+            }`}
+            title={showHeatmap ? 'Show Markers' : 'Show Heatmap'}
+          >
+            <Layers size={20} />
+          </motion.button>
 
-        {/* Current Location */}
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={getCurrentLocation}
-          className="w-12 h-12 bg-card rounded-full shadow-lg flex items-center justify-center"
-          title="Go to my location"
-        >
-          <Navigation size={20} className="text-primary" />
-        </motion.button>
-      </div>
+          {/* Current Location */}
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={getCurrentLocation}
+            className="w-12 h-12 bg-card rounded-full shadow-lg flex items-center justify-center"
+            title="Go to my location"
+          >
+            <Navigation size={20} className="text-primary" />
+          </motion.button>
+        </div>
+      )}
 
       {/* Legend */}
-      <div className="absolute top-24 right-4 z-[1000] bg-card/90 backdrop-blur rounded-lg shadow-md p-3 text-xs">
-        <h3 className="font-semibold mb-2">Severity</h3>
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-            <span>High</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-            <span>Medium</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span>Low</span>
+      {complaints.length > 0 && (
+        <div className="absolute top-24 right-4 z-[1000] bg-card/90 backdrop-blur rounded-lg shadow-md p-3 text-xs">
+          <h3 className="font-semibold mb-2">Severity</h3>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <span>High</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+              <span>Medium</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <span>Low</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <BottomNavigation />
     </div>

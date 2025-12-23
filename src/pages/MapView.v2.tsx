@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { StatusBadge } from '@/components/StatusBadge';
 import { IssueTagChip } from '@/components/IssueTagChip';
 import { Button } from '@/components/ui/button';
+import 'leaflet/dist/leaflet.css';
 
 // Fix for default marker icons in React-Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -48,9 +49,6 @@ export default function MapView() {
   // Default center (Kathmandu, Nepal)
   const defaultCenter: [number, number] = [27.7172, 85.3240];
   const center = userLocation || defaultCenter;
-
-  console.log('MapView rendering with', complaints.length, 'complaints');
-  console.log('Center:', center);
 
   // Get user's current location
   const getCurrentLocation = () => {
@@ -118,13 +116,13 @@ export default function MapView() {
       </header>
 
       {/* Map Container - Simple and Direct */}
-      <div className="w-full h-full" style={{ height: '100vh', width: '100vw' }}>
+      <div className="w-full h-full">
         <MapContainer
           center={center}
           zoom={13}
           scrollWheelZoom={true}
           zoomControl={true}
-          style={{ height: '100vh', width: '100vw', background: '#f0f0f0' }}
+          style={{ height: '100%', width: '100%' }}
           className="z-0"
         >
           {/* OpenStreetMap Tiles - Free and reliable */}
@@ -132,7 +130,6 @@ export default function MapView() {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             maxZoom={19}
-            crossOrigin={true}
           />
 
           {/* Update map center when user location changes */}
