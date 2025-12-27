@@ -9,7 +9,7 @@ import { ComplaintCard } from '@/components/ComplaintCard';
 import { FilterSheet } from '@/components/FilterSheet';
 
 export default function Home() {
-  const { user } = useAuth();
+  const { profile, isGuest } = useAuth();
   const { filteredComplaints, filters, setFilters } = useComplaints();
   const [showFilters, setShowFilters] = useState(false);
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ export default function Home() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-primary-foreground/70 text-sm">Welcome back,</p>
-            <h1 className="text-xl font-bold">{user?.name || 'Guest'}</h1>
+            <h1 className="text-xl font-bold">{isGuest ? 'Guest' : profile?.full_name || 'User'}</h1>
           </div>
           <button onClick={() => navigate('/notifications')} className="relative p-2 bg-primary-foreground/10 rounded-xl">
             <Bell size={22} />

@@ -22,7 +22,7 @@ export default function Report() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { addComplaint } = useComplaints();
-  const { user, userLocation } = useAuth();
+  const { profile, userLocation, isGuest } = useAuth();
   const { latitude, longitude, loading: locationLoading, error: locationError, requestLocation } = useLocation();
 
   // Use location from hook or fallback to auth context
@@ -36,7 +36,7 @@ export default function Report() {
     }
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedType || !description) {
       toast.error('Please fill all required fields');
@@ -46,24 +46,24 @@ export default function Report() {
       toast.error('Location is required. Please enable location access.');
       return;
     }
+    if (isGuest) {
+      toast.error('Please login to submit a report');
+      return;
+    }
     setLoading(true);
-    setTimeout(() => {
-      addComplaint({
-        type: selectedType,
-        description,
-        lat: currentLat,
-        lng: currentLng,
-        photoUrl: photo || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=400',
-        severity,
-        user: user?.name || 'Anonymous',
-        userAvatar: user?.avatar,
-        timestamp: new Date().toISOString(),
-        location: `${currentLat.toFixed(4)}°N, ${currentLng.toFixed(4)}°E`,
-      });
-      setLoading(false);
-      toast.success('Report submitted!');
+    const success = await addComplaint({
+      type: selectedType,
+      description,
+      lat: currentLat,
+      lng: currentLng,
+      photoUrl: photo || undefined,
+      severity,
+      location: `${currentLat.toFixed(4)}°N, ${currentLng.toFixed(4)}°E`,
+    });
+    setLoading(false);
+    if (success) {
       navigate('/home');
-    }, 1000);
+    }
   };
 
   const handlePhotoSelect = () => setPhoto('https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=400');

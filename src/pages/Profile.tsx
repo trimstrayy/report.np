@@ -1,40 +1,58 @@
 import { motion } from 'framer-motion';
-import { LogOut, Award, FileText, CheckCircle, ChevronRight, Globe, UserPlus, MapPin } from 'lucide-react';
+import { LogOut, Award, FileText, CheckCircle, ChevronRight, Globe, UserPlus, MapPin, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/providers/AuthProvider';
 import { BottomNavigation } from '@/components/BottomNavigation';
 
 export default function Profile() {
-  const { user, logout, isGuest, userLocation } = useAuth();
+  const { user, profile, logout, isGuest, userLocation } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 
-  const rankColors = { Bronze: 'text-amber-600', Silver: 'text-gray-400', Gold: 'text-yellow-500' };
+  const rankColors: Record<string, string> = { Bronze: 'text-amber-600', Silver: 'text-gray-400', Gold: 'text-yellow-500' };
+  
+  // Calculate rank based on points
+  const getRank = (points: number) => {
+    if (points >= 1000) return 'Gold';
+    if (points >= 500) return 'Silver';
+    return 'Bronze';
+  };
+
+  const currentRank = profile ? getRank(profile.points) : 'Bronze';
 
   return (
     <div className="page-container">
       <header className="bg-primary text-primary-foreground px-5 pt-12 pb-8 rounded-b-3xl text-center">
         <div className="w-20 h-20 rounded-full bg-primary-foreground/20 mx-auto mb-4 overflow-hidden flex items-center justify-center">
-          {user?.avatar ? (
-            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-2xl font-bold">
-              {isGuest ? '?' : user?.name?.charAt(0)}
+              {isGuest ? '?' : profile?.full_name?.charAt(0) || '?'}
             </div>
           )}
         </div>
-        <h1 className="text-xl font-bold">{user?.name}</h1>
+        <h1 className="text-xl font-bold">{isGuest ? 'Guest User' : profile?.full_name || 'User'}</h1>
         {isGuest ? (
           <p className="text-sm text-primary-foreground/70 mt-1">Sign in to track your contributions</p>
         ) : (
-          <div className="flex items-center justify-center gap-1 mt-1">
-            <Award size={16} className={rankColors[user?.rank || 'Bronze']} />
-            <span className="text-sm">{user?.rank} Contributor</span>
-          </div>
+          <>
+            {profile?.account_type === 'municipal' ? (
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <Building2 size={16} />
+                <span className="text-sm">{profile.municipal_name}</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <Award size={16} className={rankColors[currentRank]} />
+                <span className="text-sm">{currentRank} Contributor</span>
+              </div>
+            )}
+          </>
         )}
         {userLocation && (
           <div className="flex items-center justify-center gap-1 mt-2 text-xs text-primary-foreground/70">
@@ -60,20 +78,36 @@ export default function Profile() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="card-elevated p-4 text-center">
-              <p className="text-2xl font-bold text-primary">{user?.points || 0}</p>
-              <p className="text-xs text-muted-foreground">Points</p>
+          <>
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="card-elevated p-4 text-center">
+                <p className="text-2xl font-bold text-primary">{profile?.points || 0}</p>
+                <p className="text-xs text-muted-foreground">Points</p>
+              </div>
+              <div className="card-elevated p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">0</p>
+                <p className="text-xs text-muted-foreground">Reports</p>
+              </div>
+              <div className="card-elevated p-4 text-center">
+                <p className="text-2xl font-bold text-green-600">0</p>
+                <p className="text-xs text-muted-foreground">Resolved</p>
+              </div>
             </div>
-            <div className="card-elevated p-4 text-center">
-              <p className="text-2xl font-bold text-foreground">{user?.reportsCount || 0}</p>
-              <p className="text-xs text-muted-foreground">Reports</p>
-            </div>
-            <div className="card-elevated p-4 text-center">
-              <p className="text-2xl font-bold text-green-600">{user?.resolvedCount || 0}</p>
-              <p className="text-xs text-muted-foreground">Resolved</p>
-            </div>
-          </div>
+
+            {/* Municipal Approvals Button - only for approved municipal accounts */}
+            {profile?.account_type === 'municipal' && profile?.approval_status === 'approved' && (
+              <button
+                onClick={() => navigate('/municipal-approvals')}
+                className="w-full card-elevated p-4 flex items-center justify-between mb-6"
+              >
+                <div className="flex items-center gap-3">
+                  <Building2 size={20} className="text-primary" />
+                  <span className="font-medium">Municipal Approvals</span>
+                </div>
+                <ChevronRight size={18} className="text-muted-foreground" />
+              </button>
+            )}
+          </>
         )}
 
         <h2 className="section-title">Settings</h2>

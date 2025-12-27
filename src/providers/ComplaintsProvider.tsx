@@ -1,115 +1,31 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Complaint, FilterState, IssueType, ComplaintStatus, Severity } from '@/models/types';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './AuthProvider';
+import { toast } from 'sonner';
 
-const dummyComplaints: Complaint[] = [
-  {
-    id: 1,
-    type: 'Road Damage',
-    description: 'Large pothole near main road causing accidents. Multiple vehicles have been damaged.',
-    lat: 27.7172,
-    lng: 85.324,
-    photoUrl: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=400&h=300&fit=crop',
-    status: 'Pending',
-    severity: 'High',
-    user: 'Ram Bahadur',
-    userAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face',
-    timestamp: '2025-01-10 14:30:00',
-    location: 'Kathmandu, Thamel',
-    upvotes: 23,
-    downvotes: 2,
-  },
-  {
-    id: 2,
-    type: 'Streetlight Problem',
-    description: 'Street light not working for 2 weeks. Dark area is unsafe for pedestrians.',
-    lat: 27.7052,
-    lng: 85.3162,
-    photoUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop',
-    status: 'Verified',
-    severity: 'Medium',
-    user: 'Sita Sharma',
-    userAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=50&h=50&fit=crop&crop=face',
-    timestamp: '2025-01-09 09:15:00',
-    location: 'Lalitpur, Pulchowk',
-    upvotes: 15,
-    downvotes: 0,
-  },
-  {
-    id: 3,
-    type: 'Water Leakage',
-    description: 'Water pipe burst causing water waste and road damage.',
-    lat: 27.6844,
-    lng: 85.3188,
-    photoUrl: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=400&h=300&fit=crop',
-    status: 'In Progress',
-    severity: 'High',
-    user: 'Hari Prasad',
-    userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&crop=face',
-    timestamp: '2025-01-08 16:45:00',
-    location: 'Bhaktapur, Suryabinayak',
-    upvotes: 31,
-    downvotes: 1,
-  },
-  {
-    id: 4,
-    type: 'Sewage',
-    description: 'Blocked drain causing sewage overflow on street.',
-    lat: 27.7219,
-    lng: 85.3391,
-    photoUrl: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=400&h=300&fit=crop',
-    status: 'Resolved',
-    severity: 'Medium',
-    user: 'Krishna KC',
-    userAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=50&h=50&fit=crop&crop=face',
-    timestamp: '2025-01-05 11:20:00',
-    location: 'Kathmandu, Basantapur',
-    upvotes: 18,
-    downvotes: 3,
-    beforePhotoUrl: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=400&h=300&fit=crop',
-    afterPhotoUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop',
-  },
-  {
-    id: 5,
-    type: 'Pollution',
-    description: 'Factory releasing black smoke into residential area.',
-    lat: 27.6915,
-    lng: 85.2865,
-    photoUrl: 'https://images.unsplash.com/photo-1611273426858-450d8e3c9fce?w=400&h=300&fit=crop',
-    status: 'Pending',
-    severity: 'High',
-    user: 'Maya Gurung',
-    userAvatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=50&h=50&fit=crop&crop=face',
-    timestamp: '2025-01-11 08:00:00',
-    location: 'Kirtipur, Naya Bazaar',
-    upvotes: 42,
-    downvotes: 5,
-  },
-  {
-    id: 6,
-    type: 'Noise',
-    description: 'Construction noise after 10 PM violating noise regulations.',
-    lat: 27.7092,
-    lng: 85.3205,
-    photoUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&h=300&fit=crop',
-    status: 'Verified',
-    severity: 'Low',
-    user: 'Binod Thapa',
-    userAvatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=50&h=50&fit=crop&crop=face',
-    timestamp: '2025-01-10 22:30:00',
-    location: 'Lalitpur, Jawalakhel',
-    upvotes: 8,
-    downvotes: 2,
-  },
-];
+interface ComplaintWithVotes extends Complaint {
+  userVote?: 'upvote' | 'downvote' | null;
+}
 
 interface ComplaintsContextType {
-  complaints: Complaint[];
-  filteredComplaints: Complaint[];
+  complaints: ComplaintWithVotes[];
+  filteredComplaints: ComplaintWithVotes[];
   filters: FilterState;
+  loading: boolean;
   setFilters: (filters: FilterState) => void;
-  addComplaint: (complaint: Omit<Complaint, 'id' | 'upvotes' | 'downvotes' | 'status'>) => void;
-  voteComplaint: (id: number, vote: 'up' | 'down') => void;
-  getComplaintById: (id: number) => Complaint | undefined;
+  addComplaint: (complaint: {
+    type: IssueType;
+    description: string;
+    lat: number;
+    lng: number;
+    location: string;
+    photoUrl?: string;
+    severity: Severity;
+  }) => Promise<boolean>;
+  voteComplaint: (id: string, vote: 'up' | 'down') => Promise<void>;
+  getComplaintById: (id: string) => ComplaintWithVotes | undefined;
+  refreshComplaints: () => Promise<void>;
 }
 
 const defaultFilters: FilterState = {
@@ -122,8 +38,70 @@ const defaultFilters: FilterState = {
 const ComplaintsContext = createContext<ComplaintsContextType | undefined>(undefined);
 
 export function ComplaintsProvider({ children }: { children: ReactNode }) {
-  const [complaints, setComplaints] = useState<Complaint[]>(dummyComplaints);
+  const [complaints, setComplaints] = useState<ComplaintWithVotes[]>([]);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  const fetchComplaints = async () => {
+    setLoading(true);
+    try {
+      // Fetch complaints with user profiles
+      const { data: complaintsData, error: complaintsError } = await supabase
+        .from('complaints')
+        .select(`
+          *,
+          profiles:user_id (full_name, avatar_url)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (complaintsError) throw complaintsError;
+
+      // Fetch all votes
+      const { data: votesData, error: votesError } = await supabase
+        .from('complaint_votes')
+        .select('complaint_id, vote_type, user_id');
+
+      if (votesError) throw votesError;
+
+      // Process complaints with vote counts
+      const processedComplaints: ComplaintWithVotes[] = (complaintsData || []).map((c: any) => {
+        const complaintVotes = votesData?.filter(v => v.complaint_id === c.id) || [];
+        const upvotes = complaintVotes.filter(v => v.vote_type === 'upvote').length;
+        const downvotes = complaintVotes.filter(v => v.vote_type === 'downvote').length;
+        const userVote = user ? complaintVotes.find(v => v.user_id === user.id)?.vote_type as 'upvote' | 'downvote' | undefined : undefined;
+
+        return {
+          id: c.id,
+          type: c.type as IssueType,
+          description: c.description,
+          lat: c.lat,
+          lng: c.lng,
+          location: c.location || `${c.lat.toFixed(4)}°N, ${c.lng.toFixed(4)}°E`,
+          photoUrl: c.photo_url || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=400',
+          status: c.status as ComplaintStatus,
+          severity: c.severity as Severity,
+          user: c.profiles?.full_name || 'Anonymous',
+          userAvatar: c.profiles?.avatar_url,
+          timestamp: c.created_at,
+          upvotes,
+          downvotes,
+          userVote: userVote || null,
+          isUserVoted: userVote === 'upvote' ? 'up' : userVote === 'downvote' ? 'down' : undefined,
+        };
+      });
+
+      setComplaints(processedComplaints);
+    } catch (error) {
+      console.error('Error fetching complaints:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchComplaints();
+  }, [user]);
 
   const filteredComplaints = complaints.filter(complaint => {
     if (filters.issueTypes.length > 0 && !filters.issueTypes.includes(complaint.type)) {
@@ -138,35 +116,102 @@ export function ComplaintsProvider({ children }: { children: ReactNode }) {
     return true;
   });
 
-  const addComplaint = (newComplaint: Omit<Complaint, 'id' | 'upvotes' | 'downvotes' | 'status'>) => {
-    const complaint: Complaint = {
-      ...newComplaint,
-      id: complaints.length + 1,
-      upvotes: 0,
-      downvotes: 0,
-      status: 'Pending',
-    };
-    setComplaints(prev => [complaint, ...prev]);
-    console.log('New complaint added:', JSON.stringify(complaint, null, 2));
+  const addComplaint = async (newComplaint: {
+    type: IssueType;
+    description: string;
+    lat: number;
+    lng: number;
+    location: string;
+    photoUrl?: string;
+    severity: Severity;
+  }): Promise<boolean> => {
+    if (!user) {
+      toast.error('You must be logged in to report an issue');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase.from('complaints').insert({
+        user_id: user.id,
+        type: newComplaint.type,
+        description: newComplaint.description,
+        lat: newComplaint.lat,
+        lng: newComplaint.lng,
+        location: newComplaint.location,
+        photo_url: newComplaint.photoUrl,
+        severity: newComplaint.severity,
+      });
+
+      if (error) throw error;
+
+      toast.success('Report submitted! You earned 10 points! 🎉');
+      await fetchComplaints();
+      return true;
+    } catch (error: any) {
+      console.error('Error adding complaint:', error);
+      toast.error('Failed to submit report');
+      return false;
+    }
   };
 
-  const voteComplaint = (id: number, vote: 'up' | 'down') => {
-    setComplaints(prev =>
-      prev.map(c => {
-        if (c.id === id) {
-          if (vote === 'up') {
-            return { ...c, upvotes: c.upvotes + 1, isUserVoted: 'up' };
-          } else {
-            return { ...c, downvotes: c.downvotes + 1, isUserVoted: 'down' };
-          }
+  const voteComplaint = async (id: string, vote: 'up' | 'down') => {
+    if (!user) {
+      toast.error('You must be logged in to vote');
+      return;
+    }
+
+    const complaint = complaints.find(c => String(c.id) === id);
+    if (!complaint) return;
+
+    const voteType = vote === 'up' ? 'upvote' : 'downvote';
+    const existingVote = complaint.userVote;
+
+    try {
+      if (existingVote === voteType) {
+        // Remove vote
+        const { error } = await supabase
+          .from('complaint_votes')
+          .delete()
+          .eq('complaint_id', id)
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+        toast.success('Vote removed');
+      } else if (existingVote) {
+        // Change vote
+        const { error } = await supabase
+          .from('complaint_votes')
+          .update({ vote_type: voteType })
+          .eq('complaint_id', id)
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+        toast.success(vote === 'up' ? 'Changed to upvote!' : 'Changed to downvote');
+      } else {
+        // New vote
+        const { error } = await supabase.from('complaint_votes').insert({
+          complaint_id: id,
+          user_id: user.id,
+          vote_type: voteType,
+        });
+
+        if (error) throw error;
+        if (vote === 'up') {
+          toast.success('Upvoted! Post owner earned 3 points');
+        } else {
+          toast.success('Downvoted');
         }
-        return c;
-      })
-    );
+      }
+
+      await fetchComplaints();
+    } catch (error: any) {
+      console.error('Error voting:', error);
+      toast.error('Failed to vote');
+    }
   };
 
-  const getComplaintById = (id: number) => {
-    return complaints.find(c => c.id === id);
+  const getComplaintById = (id: string) => {
+    return complaints.find(c => String(c.id) === id);
   };
 
   return (
@@ -175,10 +220,12 @@ export function ComplaintsProvider({ children }: { children: ReactNode }) {
         complaints,
         filteredComplaints,
         filters,
+        loading,
         setFilters,
         addComplaint,
         voteComplaint,
         getComplaintById,
+        refreshComplaints: fetchComplaints,
       }}
     >
       {children}

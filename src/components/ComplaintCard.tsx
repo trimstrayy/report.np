@@ -5,15 +5,17 @@ import { StatusBadge } from './StatusBadge';
 import { IssueTagChip } from './IssueTagChip';
 import { useNavigate } from 'react-router-dom';
 import { useComplaints } from '@/providers/ComplaintsProvider';
+import { useAuth } from '@/providers/AuthProvider';
 
 interface ComplaintCardProps {
-  complaint: Complaint;
+  complaint: Complaint & { userVote?: 'upvote' | 'downvote' | null };
   index?: number;
 }
 
 export function ComplaintCard({ complaint, index = 0 }: ComplaintCardProps) {
   const navigate = useNavigate();
   const { voteComplaint } = useComplaints();
+  const { isGuest } = useAuth();
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -27,10 +29,13 @@ export function ComplaintCard({ complaint, index = 0 }: ComplaintCardProps) {
     return 'Just now';
   };
 
-  const handleVote = (e: React.MouseEvent, vote: 'up' | 'down') => {
+  const handleVote = async (e: React.MouseEvent, vote: 'up' | 'down') => {
     e.stopPropagation();
-    voteComplaint(complaint.id, vote);
+    await voteComplaint(String(complaint.id), vote);
   };
+
+  const isUpvoted = complaint.userVote === 'upvote' || complaint.isUserVoted === 'up';
+  const isDownvoted = complaint.userVote === 'downvote' || complaint.isUserVoted === 'down';
 
   return (
     <motion.article
@@ -94,24 +99,26 @@ export function ComplaintCard({ complaint, index = 0 }: ComplaintCardProps) {
       <div className="flex items-center gap-4 pt-2 border-t border-border">
         <button
           onClick={(e) => handleVote(e, 'up')}
+          disabled={isGuest}
           className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors ${
-            complaint.isUserVoted === 'up'
+            isUpvoted
               ? 'bg-primary/10 text-primary'
               : 'hover:bg-muted text-muted-foreground'
-          }`}
+          } ${isGuest ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          <ThumbsUp size={16} />
+          <ThumbsUp size={16} fill={isUpvoted ? 'currentColor' : 'none'} />
           <span className="text-sm font-medium">{complaint.upvotes}</span>
         </button>
         <button
           onClick={(e) => handleVote(e, 'down')}
+          disabled={isGuest}
           className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors ${
-            complaint.isUserVoted === 'down'
+            isDownvoted
               ? 'bg-destructive/10 text-destructive'
               : 'hover:bg-muted text-muted-foreground'
-          }`}
+          } ${isGuest ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          <ThumbsDown size={16} />
+          <ThumbsDown size={16} fill={isDownvoted ? 'currentColor' : 'none'} />
           <span className="text-sm font-medium">{complaint.downvotes}</span>
         </button>
       </div>

@@ -16,6 +16,7 @@ import Profile from "./pages/Profile";
 import Helplines from "./pages/Helplines";
 import Notifications from "./pages/Notifications";
 import ComplaintDetails from "./pages/ComplaintDetails";
+import MunicipalApprovals from "./pages/MunicipalApprovals";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
                 <Route path="/helplines" element={<Helplines />} />
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/complaint/:id" element={<ComplaintDetails />} />
+                <Route path="/municipal-approvals" element={<MunicipalApprovals />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

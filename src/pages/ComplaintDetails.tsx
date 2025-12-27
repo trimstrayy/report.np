@@ -11,7 +11,7 @@ export default function ComplaintDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getComplaintById, voteComplaint } = useComplaints();
-  const complaint = getComplaintById(Number(id));
+  const complaint = getComplaintById(id || '');
 
   if (!complaint) return <div className="page-container flex items-center justify-center"><p>Complaint not found</p></div>;
 
@@ -56,10 +56,10 @@ export default function ComplaintDetails() {
 
         {/* Voting */}
         <div className="flex gap-4">
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => voteComplaint(complaint.id, 'up')} className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary/10 text-primary rounded-xl font-medium">
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => voteComplaint(String(complaint.id), 'up')} className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary/10 text-primary rounded-xl font-medium">
             <ThumbsUp size={18} /> Upvote ({complaint.upvotes})
           </motion.button>
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => voteComplaint(complaint.id, 'down')} className="flex-1 flex items-center justify-center gap-2 py-3 bg-muted text-muted-foreground rounded-xl font-medium">
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => voteComplaint(String(complaint.id), 'down')} className="flex-1 flex items-center justify-center gap-2 py-3 bg-muted text-muted-foreground rounded-xl font-medium">
             <ThumbsDown size={18} /> Downvote ({complaint.downvotes})
           </motion.button>
         </div>

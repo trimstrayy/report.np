@@ -15,7 +15,7 @@ export type ComplaintStatus = 'Pending' | 'Verified' | 'In Progress' | 'Resolved
 export type Severity = 'Low' | 'Medium' | 'High';
 
 export interface Complaint {
-  id: number;
+  id: string | number;
   type: IssueType;
   description: string;
   lat: number;
