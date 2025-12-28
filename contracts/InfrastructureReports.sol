@@ -56,9 +56,23 @@ contract InfrastructureReports {
         report.upvotes++;
         report.severity = calculateSeverity(report.upvotes); // Update severity based on upvotes
 
-        // Issue credits
-        credits[msg.sender] += 5; // Upvoter gets 5 credits
-        credits[report.reporter] += 10; // Reporter gets 10 credits
+        // Issue credits only if report has 3 or more upvotes
+        if (report.upvotes >= 3) {
+            if (report.upvotes == 3) {
+                // First time reaching 3 upvotes: credit all upvoters and poster
+                // All 3 upvoters get 3 credits each
+                for (uint256 i = 0; i < report.upvoters.length; i++) {
+                    credits[report.upvoters[i]] += 3;
+                }
+                // Poster gets 10 credits for posting + 5 credits per upvote (5*3 = 15)
+                credits[report.reporter] += 10 + 15; // Total 25 credits
+            } else {
+                // For upvotes beyond 3: upvoter gets 3, poster gets 5
+                credits[msg.sender] += 3;
+                credits[report.reporter] += 5;
+            }
+        }
+        // If upvotes < 3, no credits are issued
 
         emit ReportUpvoted(_reportId, msg.sender);
     }
